@@ -100,11 +100,13 @@ def test(test_loader, model, modeltype, device):
             n = batch_data['transports'].shape[2]
             transports = batch_data['transports'].reshape(n_s_sqrt,n_s_sqrt,n).permute(2,0,1).unsqueeze(0).to(device)
 
+            # compute features
             normals = normals[indices_encoder]
             torus_normals = batch_data['torus_nor'][0].to(device)
             normal_features = torch.cross(normals, torus_normals, dim=1).reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
             weights_features = weights[indices_encoder].reshape(n_s_sqrt,n_s_sqrt,1).permute(2,0,1).unsqueeze(0)
         
+            # cat input features
             transports = torch.cat((transports, batch_data['pos'].to(device), normal_features), dim=1)
 
             # Start the timer just before the model inference
@@ -115,7 +117,7 @@ def test(test_loader, model, modeltype, device):
             inference_time = default_timer() - start_time
             total_inference_time += inference_time
 
-            out = torch.mean(out)
+            # normalizer decode
             out = Cds_encoder.decode(out)
             
             loss = (out - Cd) ** 2
@@ -255,7 +257,6 @@ if __name__ == '__main__':
             
             out = model(transports, indices_decoder, weights_features)
 
-            out = torch.mean(out)
             loss = (out - Cd)**2
             loss.backward()
 
@@ -289,7 +290,7 @@ if __name__ == '__main__':
                 transports = torch.cat((transports, batch_data['pos'].to(device), normal_features), dim=1)
 
                 out = model(transports, indices_decoder, weights_features)
-                out = torch.mean(out)
+               
                 out = Cds_encoder.decode(out)
                 loss = (out - Cd)**2
 
