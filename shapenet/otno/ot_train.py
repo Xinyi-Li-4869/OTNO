@@ -73,19 +73,19 @@ def create_torus_grid(n_s_sqrt, R, r):
 
 t1 = default_timer()
 
+"""Config"""
 expand_factor = 3.0
 n_t = 3586
 n_s_sqrt = int(np.sqrt(expand_factor)*np.ceil(np.sqrt(n_t)))
 R = 1.5
 r = 1
 
-t = torch.linspace(0, 1, n_s_sqrt+1)[:-1]
-rectangular_grid = torch.stack(torch.meshgrid(t, t, indexing='ij'))
-pos_embed = create_torus_grid(n_s_sqrt, R, r)
-torus_normals = compute_torus_normals(n_s_sqrt, R, r)
-
 n_train = 500
 n_test = 111
+
+epochs = 151
+
+"""Load data"""
 data_path = '/central/groups/tensorlab/xinyi/OT/ot-data/torus_OTmean_geomloss_expand'+str(expand_factor)+'.pt'
 data = torch.load(data_path)
 print(data_path)
@@ -98,6 +98,7 @@ train_points = data['points'][0:n_train, ...]
 train_indices_encoder = data['indices_encoder'][0:n_train, ...]
 train_indices_decoder = data['indices_decoder'][0:n_train, ...]
 
+# normalization
 pressure_encoder = UnitGaussianNormalizer(train_pressures, reduce_dim=[0,1])
 transport_encoder = UnitGaussianNormalizer(train_transports, reduce_dim=[0, 2, 3])
 
@@ -117,23 +118,26 @@ test_transports = transport_encoder.encode(test_transports)
 train_dict = {'transports': train_transports, 'pressures': train_pressures, 'points': train_points, 'normals':train_normals, 'indices_encoder': train_indices_encoder, 'indices_decoder': train_indices_decoder}
 test_dict = {'transports': test_transports, 'pressures': test_pressures, 'points': test_points, 'normals':test_normals, 'indices_encoder': test_indices_encoder, 'indices_decoder': test_indices_decoder}
 
+# combine constant data: torus girds and torus normals
+pos_embed = create_torus_grid(n_s_sqrt, R, r)
+torus_normals = compute_torus_normals(n_s_sqrt, R, r)
+
 train_dataset = DictDatasetWithConstant(train_dict, {'pos': pos_embed, 'nor':torus_normals})
 test_dataset = DictDatasetWithConstant(test_dict, {'pos': pos_embed, 'nor':torus_normals})
 
 train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
-model = TransportFNO(n_modes=(32, 32), hidden_channels=120, in_channels=6, norm='group_norm',
+"""Initialize model"""
+model = TransportFNO(n_modes=(32, 32), hidden_channels=120, in_channels=9, norm='group_norm',
                      use_mlp=True, mlp={'expansion': 1.0, 'dropout': 0}, domain_padding=0.125,
                      factorization='tucker', rank=0.4)
-#print(model)
+
 print(count_model_params(model))
 model = model.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-
-epochs = 151
 myloss = LpLoss(size_average=False)
 
 for ep in range(epochs):
@@ -149,14 +153,14 @@ for ep in range(epochs):
         normals = batch_data['normals'][0].to(device)
         indices_encoder = batch_data['indices_encoder'][0].to(dtype=torch.long, device=device)
         indices_decoder = batch_data['indices_decoder'][0].to(dtype=torch.long, device=device)
-        #print(len(torch.unique(indices_encoder)))
 
+        # compute normal feature
         normals = normals[indices_encoder]
         torus_normals = batch_data['nor'].reshape(-1,3).to(device)
-        #normal_features = torch.cross(normals, torus_normals, dim=1).reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
-        #normal_features = normals.reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
+        normal_features = torch.cross(normals, torus_normals, dim=1).reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
        
-        transports = torch.cat((transports, batch_data['pos'].permute(0,3,1,2).to(device)), dim=1)#, normal_features
+        # cat input features
+        transports = torch.cat((transports, batch_data['pos'].permute(0,3,1,2).to(device), normal_features), dim=1)
 
         out = model(transports, indices_decoder)
 
@@ -179,10 +183,9 @@ for ep in range(epochs):
             indices_decoder = batch_data['indices_decoder'][0].to(dtype=torch.long, device=device)
             normals = normals[indices_encoder]
             torus_normals = batch_data['nor'].reshape(-1,3).to(device)
-            #normal_features = torch.cross(normals, torus_normals, dim=1).reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
-            #normal_features = normals.reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
+            normal_features = torch.cross(normals, torus_normals, dim=1).reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1).unsqueeze(0)
         
-            transports = torch.cat((transports, batch_data['pos'].permute(0,3,1,2).to(device)), dim=1)#, normal_features
+            transports = torch.cat((transports, batch_data['pos'].permute(0,3,1,2).to(device), normal_features), dim=1)
 
             out = model(transports, indices_decoder)
             out = pressure_encoder.decode(out)
