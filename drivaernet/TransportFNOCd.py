@@ -7,7 +7,7 @@ from neuralop.models import FNO
 from neuralop.layers.channel_mlp import ChannelMLP as NeuralopMLP
 from neuralop.layers.spectral_convolution import SpectralConv
 
-class TransportIdxFNOCd(FNO):
+class TransportFNOCd(FNO):
     def __init__(
             self,
             n_modes,
