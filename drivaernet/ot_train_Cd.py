@@ -2,8 +2,8 @@ import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from utils import UnitGaussianNormalizer, count_model_params
-from TransportFNOCd import TransportFNOCd
+from ..utils import UnitGaussianNormalizer, count_model_params
+from .TransportFNOCd import TransportFNOCd
 from timeit import default_timer
 
 import matplotlib.pyplot as plt
