@@ -98,7 +98,7 @@ train_points = data['points'][0:n_train, ...]
 train_indices_encoder = data['indices_encoder'][0:n_train, ...]
 train_indices_decoder = data['indices_decoder'][0:n_train, ...]
 
-pressure_encoder = UnitGaussianNormalizer(train_pressures, reduce_dim=[0, 1])
+pressure_encoder = UnitGaussianNormalizer(train_pressures, reduce_dim=[0,1])
 transport_encoder = UnitGaussianNormalizer(train_transports, reduce_dim=[0, 2, 3])
 
 train_pressures = pressure_encoder.encode(train_pressures)
