@@ -101,10 +101,3 @@ torch.save({'points': all_points, 'transports': all_transports, 'pressures': all
 
 print("non_surjective:", non_surjective)
 print(f"Total time: {default_timer()-tt1:.2f} seconds.") 
-
-''' latent size, vary expand factor'''
-# config: torus, full dataset
-#3.5 non_surjective: 25; Total time: 223.23 seconds.
-#3.0 non_surjective: 7; Total time: 203.46 seconds.
-#2.5 non_surjective: 267; Total time: 175.67 seconds.
-#2.0 non_surjective: 80 Total time: 161.51 seconds.
