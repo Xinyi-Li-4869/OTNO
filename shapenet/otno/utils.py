@@ -152,3 +152,58 @@ def count_tensor_params(tensor, dims=None):
     if tensor.is_complex():
         return 2*n_params
     return n_params
+
+
+def plot_coordinates_as_colors(k, points, color_points, filename):
+    x_in = np.asarray(points).squeeze()
+    color_in = np.asarray(color_points).squeeze()  # Ensure color_points is an array
+
+    # Points
+    x = x_in[:, 0]  # X coordinates
+    y = x_in[:, 1]  # Y coordinates
+    z = x_in[:, 2]  # Z coordinates
+
+    # Color normalization
+    color_x = color_in[:, 0]  # Red
+    color_y = color_in[:, 1]  # Green
+    color_z = color_in[:, 2]  # Blue
+
+    # Normalize each color component to [0, 1]
+    color_x = (color_x - np.min(color_x)) / (np.max(color_x) - np.min(color_x))
+    color_y = (color_y - np.min(color_y)) / (np.max(color_y) - np.min(color_y))
+    color_z = (color_z - np.min(color_z)) / (np.max(color_z) - np.min(color_z))
+
+    # Create RGB array
+    colors = np.stack([color_x, color_y, color_z], axis=1)
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Sort points by depth to improve the visual effect of transparency
+    order = np.argsort(z)
+    x = x[order]
+    y = y[order]
+    z = z[order]
+    colors = colors[order]  # Apply the same order to colors
+
+    # Create a scatter plot with RGB colors
+    scatter = ax.scatter(x, y, z, color=colors, alpha=0.5, s=15)
+
+    # Set the same scale for all axes
+    max_range = np.array([x.max()-x.min(), y.max()-y.min(), z.max()-z.min()]).max() / 2.0
+    mid_x = (x.max()+x.min()) * 0.5
+    mid_y = (y.max()+y.min()) * 0.5
+    mid_z = (z.max()+z.min()) * 0.5
+    ax.set_xlim(mid_x - max_range, mid_x + max_range)
+    ax.set_ylim(mid_y - max_range, mid_y + max_range)
+    ax.set_zlim(mid_z - max_range, mid_z + max_range)
+    ax.set_box_aspect([1,1,1])  # Equal aspect ratio
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    plt.title(filename + str(k))
+
+    # Save the plot to a file
+    plt.savefig('/home/xinyili/OTNO/OT/images/' + filename + str(k) + '.png', format='png')
+    plt.close()  # Close the plot window
