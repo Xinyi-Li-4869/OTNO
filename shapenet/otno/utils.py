@@ -205,5 +205,5 @@ def plot_coordinates_as_colors(k, points, color_points, filename):
     plt.title(filename + str(k))
 
     # Save the plot to a file
-    plt.savefig('/home/xinyili/OTNO/OT/images/' + filename + str(k) + '.png', format='png')
+    plt.savefig(filename + str(k) + '.png', format='png')
     plt.close()  # Close the plot window
