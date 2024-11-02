@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from torch.utils.data import DataLoader, Dataset
-from ..utils import UnitGaussianNormalizer, LpLoss, count_model_params
+from utils import UnitGaussianNormalizer, LpLoss, count_model_params
 from .TransportFNO import TransportFNO
 from timeit import default_timer
 
