@@ -174,9 +174,9 @@ def create_model():
 if __name__ == '__main__':
     t1 = default_timer()
 
-    path = '/home/xinyili/datasets/drivaer/ot-data/STL200k_torusXpole_meanOTidx_voxelsize0.05_reg1e-06_expand3.0'
-    best_model_path = '/home/xinyili/OTNO/saved_models/Cd_200kstl_unweightedOTidx_voxelsize0.05_expand3.pth'
-    figure_save_path = '/home/xinyili/OTNO/visualization/Cd_unweightedOTidx_voxelsize0.05_expand3_'
+    path = '/pscratch/sd/z/zongyili/drivaer/STL200k_torusXpole_meanOTidx_weighted_voxelsize0.1_reg1e-06_expand3.0'
+    best_model_path = 'drivaernet/otno/saved_models/Cd_200kstl_unweightedOTidx_voxelsize0.05_expand3.pth'
+    figure_save_path = 'drivaernet/otno/visualization/Cd_unweightedOTidx_voxelsize0.05_expand3_'
 
     grid = torus_grid
     train_data = torch.load(path+'/train_design_ids.pt')

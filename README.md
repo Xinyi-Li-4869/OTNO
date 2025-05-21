@@ -24,7 +24,7 @@ conda activate otno
 conda install -f requirements.txt
 ```
 
-### 3. Run the Project
+## Run the Project
 ```
 python shapenet/otno/ot_train.py
 python drivaernet/otno/ot_train.py
