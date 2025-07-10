@@ -82,6 +82,7 @@ def OT_data_processor(subset_name, config, grid, device):
             pv_mesh = pv.read(full_path)
         except FileNotFoundError:
             print(f"File not found: {full_path}")
+            continue
         vertices = np.asarray(pv_mesh.points)
 
         # Convert numpy array to Open3D point cloud
@@ -137,7 +138,7 @@ def OT_data_processor(subset_name, config, grid, device):
         all_indices_encoder.append(indices_encoder.cpu())
         all_indices_decoder.append(indices_decoder.cpu())
         all_transports.append(transport.to(dtype=torch.float32).cpu())
-        print(default_timer()-tk, len(torch.unique(indices_encoder)), len(downsampled_points))
+        print(k, default_timer()-tk, len(torch.unique(indices_encoder)), len(downsampled_points))
         
         
     torch.save({
@@ -156,21 +157,21 @@ def OT_data_processor(subset_name, config, grid, device):
 if __name__ == '__main__':
     tt1 = default_timer()
     config = {
-        'aero_coeff': '/home/xinyili/datasets/drivaer/AeroCoefficient_DrivAerNet_Filtered.csv',
-        'subset_dir': '/home/xinyili/DrivAerNet/train_val_test_splits',
-        'dataset_path':  '/home/xinyili/datasets/drivaer/DrivAerNet_STLs_Combined',
+        'aero_coeff': '/your_path_to_drivaernet_dataset/AeroCoefficient_DrivAerNet_Filtered.csv',
+        'subset_dir': '/your_path/train_val_test_splits',
+        'dataset_path':  '/your_path_to_drivaernet_dataset/DrivAerNet_STLs_Combined',
         'expand_factor': 3.0,
         'reg': 1e-06,   
         'voxel_size': 0.05
     }
-    save_path = '/home/xinyili/datasets/drivaer/ot-data/STL200k_torusXpole_meanOTidx_voxelsize' + str(config['voxel_size']) + '_reg' + str(config['reg']) + '_expand' + str(config['expand_factor'])
+    save_path = '/your_save_path/STL200k_torusXpole_meanOTidx_voxelsize' + str(config['voxel_size']) + '_reg' + str(config['reg']) + '_expand' + str(config['expand_factor'])
     print(save_path)
     os.makedirs(save_path, exist_ok=True)
 
-    device = torch.device('cuda:0')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     non_surjective = 0   
-    for subset_name in ['test_design_ids', 'train_design_ids', 'val_design_ids']: # 'train_design_ids', 'val_design_ids', 'test_design_ids'
+    for subset_name in ['train_design_ids', 'test_design_ids', 'val_design_ids']:
         non_surjective += OT_data_processor(subset_name=subset_name, config=config, grid=torus_grid_with_normalized_density, device=device)
 
     tt2 = default_timer()

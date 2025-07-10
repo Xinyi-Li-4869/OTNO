@@ -2,7 +2,8 @@ from typing import List, Optional, Union
 from math import prod
 from pathlib import Path
 import torch
-
+import numpy as np
+import matplotlib.pyplot as plt
 import warnings
 
 # normalization, pointwise gaussian
