@@ -22,7 +22,7 @@ def torus_grid(n_s_sqrt):
 
 
 tt1 = default_timer()
-path = '/central/groups/tensorlab/xinyi/GINO-main/datasets/car-pressure-data/data/'
+path = '/your_path_to_datasets/car-pressure-data/data/'
 
 def read_indices(file_path):
     with open(file_path, 'r') as file:
@@ -48,7 +48,7 @@ all_indices_decoder = torch.zeros((N,3586), dtype=torch.float32)
 non_surjective = 0
 
 # Read indices from the mesh.txt file
-mesh_indices = read_indices('/central/groups/tensorlab/xinyi/GINO-main/datasets/car-pressure-data/watertight_meshes.txt')
+mesh_indices = read_indices('/your_path_to_datasets/car-pressure-data/watertight_meshes.txt')
 
 for k,index in enumerate(mesh_indices):
     t1 = default_timer()
@@ -96,7 +96,7 @@ for k,index in enumerate(mesh_indices):
 
     print(unique, default_timer()-t1, k+1)
 
-save_path = '/central/groups/tensorlab/xinyi/OT/ot-data/torus_OTmean_geomloss' + '_expand' + str(expand_factor) + '.pt' 
+save_path = '/your_path_to_shapenet/ot-data/torus_OTmean_geomloss' + '_expand' + str(expand_factor) + '.pt' 
 torch.save({'points': all_points, 'transports': all_transports, 'pressures': all_presures, 'indices_encoder': all_indices_encoder, 'indices_decoder': all_indices_decoder, 'normals': all_normals}, save_path)
 
 print("non_surjective:", non_surjective)

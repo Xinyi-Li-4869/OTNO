@@ -1,9 +1,12 @@
 import numpy as np
 import torch
-
 from torch.utils.data import DataLoader, Dataset
-from utils import UnitGaussianNormalizer, LpLoss, count_model_params
-from .TransportFNO import TransportFNO
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from utils import LpLoss, count_model_params
+from shapenet.otno.TransportFNO import TransportFNO
+from neuralop.data.transforms.normalizers import UnitGaussianNormalizer
 from timeit import default_timer
 
 class DictDataset(Dataset):
@@ -86,7 +89,7 @@ n_test = 111
 epochs = 151
 
 """Load data"""
-data_path = '/central/groups/tensorlab/xinyi/OT/ot-data/torus_OTmean_geomloss_expand'+str(expand_factor)+'.pt'
+data_path = '/your_path_to_shapenet/ot-data/torus_OTmean_geomloss_expand'+str(expand_factor)+'.pt'
 data = torch.load(data_path)
 print(data_path)
 device = torch.device('cuda')
@@ -99,11 +102,13 @@ train_indices_encoder = data['indices_encoder'][0:n_train, ...]
 train_indices_decoder = data['indices_decoder'][0:n_train, ...]
 
 # normalization
-pressure_encoder = UnitGaussianNormalizer(train_pressures, reduce_dim=[0,1])
-transport_encoder = UnitGaussianNormalizer(train_transports, reduce_dim=[0, 2, 3])
+pressure_encoder = UnitGaussianNormalizer(reduce_dim=[0,1])
+pressure_encoder.fit(train_pressures)
+transport_encoder = UnitGaussianNormalizer(reduce_dim=[0, 2, 3])
+transport_encoder.fit(train_transports)
 
-train_pressures = pressure_encoder.encode(train_pressures)
-train_transports = transport_encoder.encode(train_transports)
+train_pressures = pressure_encoder.transform(train_pressures)
+train_transports = transport_encoder.transform(train_transports)
 
 pressure_encoder.to(device)
 test_transports = data['transports'][n_train:, ...]
@@ -113,7 +118,7 @@ test_points = data['points'][n_train:, ...]
 test_indices_encoder = data['indices_encoder'][n_train:, ...]
 test_indices_decoder = data['indices_decoder'][n_train:, ...]
 
-test_transports = transport_encoder.encode(test_transports)
+test_transports = transport_encoder.transform(test_transports)
 
 train_dict = {'transports': train_transports, 'pressures': train_pressures, 'points': train_points, 'normals':train_normals, 'indices_encoder': train_indices_encoder, 'indices_decoder': train_indices_decoder}
 test_dict = {'transports': test_transports, 'pressures': test_pressures, 'points': test_points, 'normals':test_normals, 'indices_encoder': test_indices_encoder, 'indices_decoder': test_indices_decoder}
@@ -188,7 +193,7 @@ for ep in range(epochs):
             transports = torch.cat((transports, batch_data['pos'].permute(0,3,1,2).to(device), normal_features), dim=1)
 
             out = model(transports, indices_decoder)
-            out = pressure_encoder.decode(out)
+            out = pressure_encoder.inverse_transform(out)
 
             test_l2 += myloss(out, pressures).item()
 

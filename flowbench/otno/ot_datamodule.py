@@ -178,11 +178,11 @@ group_name = 'harmonics'
 generate_grid = ring
 device = torch.device("cuda")
 reg=1e-06
-save_path = 'ot-data/LDC_NS_2D_boundary_' + str(resolution) + '_' + group_name + '_ring_expand'+str(expand_factor) +'_reg1e-6_combined.pt'
+save_path = '/your_path_to_flowbench/ot-data/LDC_NS_2D_boundary_' + str(resolution) + '_' + group_name + '_ring_expand'+str(expand_factor) +'_reg1e-6_combined.pt'
 print(save_path)
 ###### load data ######
-data = np.load('/data/xinyili/datasets/flowbench/LDC_NS_2D/' + str(resolution) + 'x' + str(resolution) + '/' + group_name + '_lid_driven_cavity_X.npz')
-outputs = np.load('/data/xinyili/datasets/flowbench/LDC_NS_2D/' + str(resolution) + 'x' + str(resolution) + '/' + group_name + '_lid_driven_cavity_Y.npz')
+data = np.load('/your_path_to_datasets/flowbench/LDC_NS_2D/' + str(resolution) + 'x' + str(resolution) + '/' + group_name + '_lid_driven_cavity_X.npz')
+outputs = np.load('/your_path_to_datasets/flowbench/LDC_NS_2D/' + str(resolution) + 'x' + str(resolution) + '/' + group_name + '_lid_driven_cavity_Y.npz')
 #print(data['data'].shape, outputs['data'].shape)
 #sys.exit(0)
 sdf_data = data['data'][:,1,:,:]  # sdf
@@ -280,12 +280,3 @@ torch.save({
         }, save_path)
 
 print(non_surjective, default_timer()-tt)
-
-#LDC_NS_2D_128_skelneton_expand3_reg1e-6 200s
-#LDC_NS_2D_128_skelneton_expand2_reg1e-6 230.73352134902962
-#128_nurbs_ring_expand3 20 270.46842645900324
-#128bcombined square nurbs 980 220.5013703550212
-#512 nurbs square 1000 17729.50675213989
-#512 harmonics square 990 19498.212556011975
-#512 skelneton ring 1000 1748.1444262778386
-#512 harmonics ring 1000 1211.5715355048887

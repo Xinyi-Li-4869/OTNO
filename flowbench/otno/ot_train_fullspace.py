@@ -1,16 +1,17 @@
 import numpy as np
 import torch
 from timeit import default_timer
+from torch.utils.data import DataLoader, Dataset
 import os
 import sys
-sys.path.append('/home/xinyili/neuraloperator')
-sys.path.append('/home/xinyili/OTNO')
-from torch.utils.data import DataLoader, Dataset
-from utils import UnitGaussianNormalizer, LpLoss, count_model_params, Normals, DictDataset, DictDatasetWithConstant
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from utils import count_model_params, Normals, DictDataset, DictDatasetWithConstant
 from neuralop.models import FNO, SFNO
 from neuralop.layers.channel_mlp import ChannelMLP as NeuralopMLP
 from neuralop.layers.spectral_convolution import SpectralConv
 from neuralop.layers.spherical_convolution import SphericalConv
+from neuralop.data.transforms.normalizers import UnitGaussianNormalizer
+from neuralop.data.losses import LpLoss
 import csv
 import time
 import argparse
@@ -168,7 +169,7 @@ reg=1e-06
 
 file_name = f'results/otno_3fields_{resolution}_{group_name}_{args.latent_shape}_expand{expand_factor}.csv'
 best_model_path = f'saved_models/fullspace/LDC_NS_2D_{resolution}_{group_name}_{args.latent_shape}_expand{expand_factor}.pth'
-data_path = f'ot-data/LDC_NS_2D_{resolution}_{group_name}_{args.latent_shape}_expand'+str(expand_factor) +'_reg1e-6_combined.pt'
+data_path = f'/your_path_to_flowbench/ot-data/LDC_NS_2D_{resolution}_{group_name}_{args.latent_shape}_expand'+str(expand_factor) +'_reg1e-6_combined.pt'
 data = torch.load(data_path)
 print(data_path, file_name)
 device = torch.device('cuda:0')
@@ -182,18 +183,20 @@ train_indices_decoder = data['indices_decoder'][0:n_train]
 
 cat_train_outputs = torch.cat([train_outputs[i] for i in range(n_train)], dim=0)
 cat_train_inputs = torch.cat([train_inputs[i].reshape(-1,7) for i in range(n_train)], dim=0)
-output_encoder = UnitGaussianNormalizer(cat_train_outputs)
-input_encoder = UnitGaussianNormalizer(cat_train_inputs)
+output_encoder = UnitGaussianNormalizer(dim=[0])
+output_encoder.fit(cat_train_outputs)
+input_encoder = UnitGaussianNormalizer(dim=[0])
+input_encoder.fit(cat_train_inputs)
 
-train_outputs = [output_encoder.encode(train_outputs[i]) for i in range(n_train)]
-train_inputs = [input_encoder.encode(train_inputs[i].reshape(-1,7)).reshape(train_inputs[i].shape[0],train_inputs[i].shape[1],7) for i in range(n_train)]
+train_outputs = [output_encoder.transform(train_outputs[i]) for i in range(n_train)]
+train_inputs = [input_encoder.transform(train_inputs[i].reshape(-1,7)).reshape(train_inputs[i].shape[0],train_inputs[i].shape[1],7) for i in range(n_train)]
 
 output_encoder.to(device)
 test_inputs = data['inputs'][n_train:]
 test_outputs = data['outs'][n_train:]
 test_indices_decoder = data['indices_decoder'][n_train:]
 
-test_inputs = [input_encoder.encode(test_inputs[i].reshape(-1,7)).reshape(test_inputs[i].shape[0],test_inputs[i].shape[1],7) for i in range(n_test)]
+test_inputs = [input_encoder.transform(test_inputs[i].reshape(-1,7)).reshape(test_inputs[i].shape[0],test_inputs[i].shape[1],7) for i in range(n_test)]
 
 train_dict = {'inputs': train_inputs, 'outputs': train_outputs, 'indices_decoder': train_indices_decoder}
 test_dict = {'inputs': test_inputs, 'outputs': test_outputs, 'indices_decoder': test_indices_decoder}
@@ -248,7 +251,7 @@ for ep in range(epochs):
             indices_decoder = batch_data['indices_decoder'][0].to(dtype=torch.long, device=device)
             
             predict = model(input.permute(0,3,1,2).to(dtype=torch.float32,device=device), indices_decoder)
-            predict = output_encoder.decode(predict)
+            predict = output_encoder.inverse_transform(predict)
             loss = myloss(output.unsqueeze(0), predict)
             test_l2 += loss.item()
 

@@ -6,7 +6,7 @@ open3d=0.19.0 #Open3D needs PyTorch version 2.2.*
 #https://github.com/isl-org/Open3D/releases/download/v0.19.0/open3d-0.19.0-cp310-cp310-manylinux_2_31_x86_64.whl
 pyvista
 pandas=2.1.4
-pykeops # require a newer version of the GNU Standard C++ Library (libstdc++.so.6), if met compiling problem, try module load gcc/newer_version_number # e.g., gcc/11.3.0 or gcc/12.2.0
+pykeops # require a newer version of the GNU Standard C++ Library (libstdc++.so.6), if met compiling problem, try "module load gcc/newer_version_number" # e.g., gcc/11.3.0 or gcc/12.2.0
 geomloss
 
 pot==0.9.5

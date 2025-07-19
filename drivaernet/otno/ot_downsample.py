@@ -125,7 +125,7 @@ def OT_data_processor(subset_name, config, grid, device):
       
         # reset the transport as the closest point in target
         transport = downsampled_points[indices_encoder]
-        transport = transport.reshape((n_s_sqrt,n_s_sqrt,3))
+        transport = transport.reshape(n_s_sqrt,n_s_sqrt,3).permute(2,0,1)
       
         #judge whether all points on car surface are used
         unique = len(torch.unique(indices_encoder))

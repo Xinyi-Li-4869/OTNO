@@ -2,13 +2,16 @@ import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from ..utils import UnitGaussianNormalizer, count_model_params
-from .TransportFNOCd import TransportFNOCd
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from utils import count_model_params
+from neuralop.data.transforms.normalizers import UnitGaussianNormalizer
+from drivaernet.otno.TransportFNOCd import TransportFNOCd
 from timeit import default_timer
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import open3d as o3d
 from sklearn.metrics import r2_score
 
@@ -118,7 +121,7 @@ def test(test_loader, model, modeltype, device):
             total_inference_time += inference_time
 
             # normalizer decode
-            out = Cds_encoder.decode(out)
+            out = Cds_encoder.inverse_transform(out)
             
             loss = (out - Cd) ** 2
             abs_error = torch.abs(out - Cd)
@@ -174,9 +177,17 @@ def create_model():
 if __name__ == '__main__':
     t1 = default_timer()
 
-    path = '/pscratch/sd/z/zongyili/drivaer/STL200k_torusXpole_meanOTidx_weighted_voxelsize0.1_reg1e-06_expand3.0'
-    best_model_path = 'drivaernet/otno/saved_models/Cd_200kstl_unweightedOTidx_voxelsize0.05_expand3.pth'
-    figure_save_path = 'drivaernet/otno/visualization/Cd_unweightedOTidx_voxelsize0.05_expand3_'
+    # Configs
+    latent_shape = 'torusXpole'
+    voxel_size = 0.1 
+    reg = 1e-06
+    expand_factor = 3.0
+    path = '/path_to_drivaer/STL200k_'+ latent_shape + '_meanOTidx_voxelsize' + str(voxel_size) + '_reg' + str(reg) + '_expand' + str(expand_factor)
+    best_model_path = f'drivaernet/otno/saved_models/Cd_200kstl_{latent_shape}_meanOTidx_voxelsize{voxel_size}_expand{expand_factor}.pth'
+    figure_save_path = f'drivaernet/otno/visualization/Cd_{latent_shape}_meanOTidx_voxelsize{voxel_size}_expand{expand_factor}_'
+
+    os.makedirs(os.path.dirname(best_model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(figure_save_path), exist_ok=True)
 
     grid = torus_grid
     train_data = torch.load(path+'/train_design_ids.pt')
@@ -201,17 +212,19 @@ if __name__ == '__main__':
     val_data['weights'] = [torch.matmul(val_data['normals'][i],torch.tensor([1, 0, 0], dtype=torch.float32))  for i in range(n_val)]
     val_data['torus_nor'] = [compute_torus_normals(val_data['transports'][i].shape[1]) for i in range(n_val)]
 
-    n = train_data['transports'][0].shape[2]
+    n = train_data['transports'][0].shape[0]
     print(n)
-    cat_train_transports = torch.cat([train_data['transports'][i].reshape(-1, n) for i in range(n_train)], dim=0)
-    transports_encoder = UnitGaussianNormalizer(cat_train_transports, reduce_dim=[0])
-    Cds_encoder = UnitGaussianNormalizer(train_data['Cd'], reduce_dim=[0])
+    cat_train_transports = torch.cat([train_data['transports'][i].permute(1,2,0).reshape(-1, n) for i in range(n_train)], dim=0)
+    transports_encoder = UnitGaussianNormalizer(dim=[0])
+    transports_encoder.fit(cat_train_transports)
+    Cds_encoder = UnitGaussianNormalizer(dim=[0])
+    Cds_encoder.fit(train_data['Cd'])
 
-    train_data['transports'] = [transports_encoder.encode(train_data['transports'][i].reshape(-1,n)) for i in range(n_train)]
-    test_data['transports'] = [transports_encoder.encode(test_data['transports'][i].reshape(-1,n)) for i in range(n_test)]
-    val_data['transports'] = [transports_encoder.encode(val_data['transports'][i].reshape(-1,n)) for i in range(n_val)]
+    train_data['transports'] = [transports_encoder.transform(train_data['transports'][i].permute(1,2,0).reshape(-1,n)) for i in range(n_train)]
+    test_data['transports'] = [transports_encoder.transform(test_data['transports'][i].permute(1,2,0).reshape(-1,n)) for i in range(n_test)]
+    val_data['transports'] = [transports_encoder.transform(val_data['transports'][i].permute(1,2,0).reshape(-1,n)) for i in range(n_val)]
 
-    train_data['Cd'] = Cds_encoder.encode(train_data['Cd'])
+    train_data['Cd'] = Cds_encoder.transform(train_data['Cd'])
     Cds_encoder.to(device)
 
     train_dataset = DictDataset(train_data)
@@ -221,15 +234,16 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
+    print(n_train, n_test, n_val)
 
     model = create_model()
     print(count_model_params(model))
     model = model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=10, factor=0.1, verbose=True)
+    optimizer = torch.optim.Adam(model.parameters())#, lr=1e-3, weight_decay=1e-4)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=10, factor=0.1)
 
-    epochs = 100
+    epochs = 51
     best_mse = float('inf')
 
     for ep in range(epochs):
@@ -291,7 +305,7 @@ if __name__ == '__main__':
 
                 out = model(transports, indices_decoder, weights_features)
                
-                out = Cds_encoder.decode(out)
+                out = Cds_encoder.inverse_transform(out)
                 loss = (out - Cd)**2
 
                 val_l2 += loss
@@ -302,7 +316,6 @@ if __name__ == '__main__':
 
         if val_l2 < best_mse:
             best_mse = val_l2
-            os.makedirs(os.path.dirname(best_model_path), exist_ok=True)
             torch.save(model.state_dict(), best_model_path)
             print(f"New best model saved with MSE: {best_mse.item():.8f}")
 
