@@ -2,6 +2,8 @@
 
 **✅ Tutorial and visualization is available here: https://neuraloperator.github.io/dev/auto_examples/models/plot_OTNO_car_cfd.html**
 
+**✅ The paper is published in JMLR: https://jmlr.org/papers/volume26/25-1380/25-1380.pdf**
+
 # Geometry Operator Learning with Optimal Transport
 In this work, we propose a novel method that integrates geometry learning into solution operator learning for partial differential equations (PDEs) on complex geometric domains. Classical geometry learning problems in machine learning (ML) typically relies on discretized meshes or point clouds to represent geometric domains. Our approach generalizes discretized meshes to mesh density functions and formulates geometry embedding as an optimal transport (OT) problem, mapping these mesh density functions to a uniform density function in a reference space.
 Compared to previous methods with interpolation or shared deformation, our OT-based method has instance-dependent deformation, which is flexible and efficient. 
